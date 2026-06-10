@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: snipurl_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: url_shortener
+
+  redis:
+    image: redis:7-alpine
+    container_name: snipurl_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
+  backend:
+    build: ./backend
+    container_name: snipurl_backend
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/url_shortener
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change_this_in_production
+      JWT_EXPIRES_IN: 7d
+      BASE_URL: http://localhost:5000
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      - mongo
+      - redis
+
+  frontend:
+    build: ./frontend
+    container_name: snipurl_frontend
+    restart: unless-stopped
+    ports:
+      - '5173:80'
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
